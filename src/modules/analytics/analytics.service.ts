@@ -19,16 +19,22 @@ export class AnalyticsService {
     const projectIds = await this.getUserProjectIds(userId);
     if (projectIds.length === 0) {
       return {
-        totalRequests: 0,
-        errorRate: 0,
-        avgLatency: 0,
-        activeEndpoints: 0,
-        requestsDelta: 0,
-        errorRateDelta: 0,
-        latencyDelta: 0,
-        endpointsDelta: 0,
+        success: true,
+        status: 200,
+        message: 'No projects found',
+        data: {
+          totalRequests: 0,
+          errorRate: 0,
+          avgLatency: 0,
+          activeEndpoints: 0,
+          requestsDelta: 0,
+          errorRateDelta: 0,
+          latencyDelta: 0,
+          endpointsDelta: 0,
+        },
       };
     }
+
 
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -69,15 +75,21 @@ export class AnalyticsService {
       prev === 0 ? (curr > 0 ? 100 : 0) : ((curr - prev) / prev) * 100;
 
     return {
-      totalRequests,
-      errorRate: Math.round(errorRate * 100) / 100,
-      avgLatency: Math.round(avgLatency * 100) / 100,
-      activeEndpoints,
-      requestsDelta: Math.round(delta(totalRequests, prevTotal) * 100) / 100,
-      errorRateDelta: Math.round(delta(errorRate, prevErrorRate) * 100) / 100,
-      latencyDelta: Math.round(delta(avgLatency, prevAvgLatency) * 100) / 100,
-      endpointsDelta: Math.round(delta(activeEndpoints, prevEndpoints) * 100) / 100,
+      success: true,
+      status: 200,
+      message: 'Overview analytics retrieved',
+      data: {
+        totalRequests,
+        errorRate: Math.round(errorRate * 100) / 100,
+        avgLatency: Math.round(avgLatency * 100) / 100,
+        activeEndpoints,
+        requestsDelta: Math.round(delta(totalRequests, prevTotal) * 100) / 100,
+        errorRateDelta: Math.round(delta(errorRate, prevErrorRate) * 100) / 100,
+        latencyDelta: Math.round(delta(avgLatency, prevAvgLatency) * 100) / 100,
+        endpointsDelta: Math.round(delta(activeEndpoints, prevEndpoints) * 100) / 100,
+      },
     };
+
   }
 
   /** Requests over time (hourly buckets, last 24h) */
@@ -87,10 +99,16 @@ export class AnalyticsService {
 
     if (projectIds.length === 0) {
       return {
-        label: 'Requests',
-        data: buckets.map((b) => ({ timestamp: b.toISOString(), value: 0 })),
+        success: true,
+        status: 200,
+        message: 'No data',
+        data: {
+          label: 'Requests',
+          data: buckets.map((b) => ({ timestamp: b.toISOString(), value: 0 })),
+        },
       };
     }
+
 
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const rows: { hour: Date; count: bigint }[] = await this.prisma.$queryRawUnsafe(
@@ -104,12 +122,18 @@ export class AnalyticsService {
 
     const map = new Map(rows.map((r) => [new Date(r.hour).toISOString(), Number(r.count)]));
     return {
-      label: 'Requests',
-      data: buckets.map((b) => ({
-        timestamp: b.toISOString(),
-        value: map.get(b.toISOString()) ?? 0,
-      })),
+      success: true,
+      status: 200,
+      message: 'Requests over time retrieved',
+      data: {
+        label: 'Requests',
+        data: buckets.map((b) => ({
+          timestamp: b.toISOString(),
+          value: map.get(b.toISOString()) ?? 0,
+        })),
+      },
     };
+
   }
 
   /** Average latency over time (hourly buckets, last 24h) */
@@ -189,7 +213,15 @@ export class AnalyticsService {
   /** Endpoint summaries */
   async getEndpoints(userId: string) {
     const projectIds = await this.getUserProjectIds(userId);
-    if (projectIds.length === 0) return [];
+    if (projectIds.length === 0) {
+      return {
+        success: true,
+        status: 200,
+        message: 'No endpoints found',
+        data: [],
+      };
+    }
+
 
     const rows: {
       path: string;
@@ -215,22 +247,28 @@ export class AnalyticsService {
       projectIds,
     );
 
-    return rows.map((r) => {
-      const total = Number(r.total);
-      const errors = Number(r.errors);
-      return {
-        id: `${r.method}:${r.path}`,
-        path: r.path,
-        method: r.method,
-        requests: total,
-        avgLatency: Math.round(Number(r.avg_latency) * 100) / 100,
-        errors,
-        errorRate: total > 0 ? Math.round((errors / total) * 10000) / 100 : 0,
-        p50Latency: Math.round(Number(r.p50) * 100) / 100,
-        p95Latency: Math.round(Number(r.p95) * 100) / 100,
-        p99Latency: Math.round(Number(r.p99) * 100) / 100,
-      };
-    });
+    return {
+      success: true,
+      status: 200,
+      message: 'Endpoints list retrieved',
+      data: rows.map((r) => {
+        const total = Number(r.total);
+        const errors = Number(r.errors);
+        return {
+          id: `${r.method}:${r.path}`,
+          path: r.path,
+          method: r.method,
+          requests: total,
+          avgLatency: Math.round(Number(r.avg_latency) * 100) / 100,
+          errors,
+          errorRate: total > 0 ? Math.round((errors / total) * 10000) / 100 : 0,
+          p50Latency: Math.round(Number(r.p50) * 100) / 100,
+          p95Latency: Math.round(Number(r.p95) * 100) / 100,
+          p99Latency: Math.round(Number(r.p99) * 100) / 100,
+        };
+      }),
+    };
+
   }
 
   /** Single endpoint detail */
@@ -262,6 +300,7 @@ export class AnalyticsService {
       method,
       path,
     );
+
 
     const s = summary[0];
     const total = Number(s?.total ?? 0);
@@ -326,46 +365,52 @@ export class AnalyticsService {
     const reqMap = new Map(requestRows.map((r) => [new Date(r.hour).toISOString(), Number(r.count)]));
 
     return {
-      id: endpointId,
-      path,
-      method,
-      requests: total,
-      avgLatency: Math.round(Number(s?.avg_latency ?? 0) * 100) / 100,
-      errors,
-      errorRate: total > 0 ? Math.round((errors / total) * 10000) / 100 : 0,
-      p50Latency: Math.round(Number(s?.p50 ?? 0) * 100) / 100,
-      p95Latency: Math.round(Number(s?.p95 ?? 0) * 100) / 100,
-      p99Latency: Math.round(Number(s?.p99 ?? 0) * 100) / 100,
-      latencyOverTime: buckets.map((b) => ({
-        timestamp: b.toISOString(),
-        value: latMap.get(b.toISOString()) ?? 0,
-      })),
-      requestsOverTime: buckets.map((b) => ({
-        timestamp: b.toISOString(),
-        value: reqMap.get(b.toISOString()) ?? 0,
-      })),
-      errorDistribution: errorDist.map((r) => ({
-        statusCode: r.status,
-        count: Number(r.count),
-      })),
-      statusDistribution: statusDist.map((r) => ({
-        statusCode: r.status,
-        count: Number(r.count),
-      })),
-      recentRequests: recentRows.map((r) => ({
-        id: r.id,
-        timestamp: r.timestamp.toISOString(),
-        endpoint: r.path,
-        method: r.method,
-        statusCode: r.status,
-        latency: r.latencyMs,
-        traceId: r.id,
-        requestBody: r.requestBody,
-        requestHeaders: r.requestHeaders,
-        errorStack: r.errorStack,
-      })),
+      success: true,
+      status: 200,
+      message: 'Endpoint detail retrieved',
+      data: {
+        id: endpointId,
+        path,
+        method,
+        requests: total,
+        avgLatency: Math.round(Number(s?.avg_latency ?? 0) * 100) / 100,
+        errors,
+        errorRate: total > 0 ? Math.round((errors / total) * 10000) / 100 : 0,
+        p50Latency: Math.round(Number(s?.p50 ?? 0) * 100) / 100,
+        p95Latency: Math.round(Number(s?.p95 ?? 0) * 100) / 100,
+        p99Latency: Math.round(Number(s?.p99 ?? 0) * 100) / 100,
+        latencyOverTime: buckets.map((b) => ({
+          timestamp: b.toISOString(),
+          value: latMap.get(b.toISOString()) ?? 0,
+        })),
+        requestsOverTime: buckets.map((b) => ({
+          timestamp: b.toISOString(),
+          value: reqMap.get(b.toISOString()) ?? 0,
+        })),
+        errorDistribution: errorDist.map((r) => ({
+          statusCode: r.status,
+          count: Number(r.count),
+        })),
+        statusDistribution: statusDist.map((r) => ({
+          statusCode: r.status,
+          count: Number(r.count),
+        })),
+        recentRequests: recentRows.map((r) => ({
+          id: r.id,
+          timestamp: r.timestamp.toISOString(),
+          endpoint: r.path,
+          method: r.method,
+          statusCode: r.status,
+          latency: r.latencyMs,
+          traceId: r.id,
+          requestBody: r.requestBody,
+          requestHeaders: r.requestHeaders,
+          errorStack: r.errorStack,
+        })),
+      },
     };
   }
+
 
   /** Paginated request log */
   async getRequests(
@@ -381,8 +426,14 @@ export class AnalyticsService {
   ) {
     const projectIds = await this.getUserProjectIds(userId);
     if (projectIds.length === 0) {
-      return { data: [], total: 0, page: 1, pageSize: 25 };
+      return {
+        success: true,
+        status: 200,
+        message: 'No requests found',
+        data: { items: [], total: 0, page: 1, pageSize: 25 },
+      };
     }
+
 
     const page = params.page ?? 1;
     const pageSize = Math.min(params.pageSize ?? 25, 100);
@@ -418,22 +469,28 @@ export class AnalyticsService {
     ]);
 
     return {
-      data: data.map((r) => ({
-        id: r.id,
-        timestamp: r.timestamp.toISOString(),
-        endpoint: r.path,
-        method: r.method,
-        statusCode: r.status,
-        latency: r.latencyMs,
-        traceId: r.id, // api_requests doesn't have traceId, use id as fallback
-        requestBody: r.requestBody,
-        requestHeaders: r.requestHeaders,
-        errorStack: r.errorStack,
-      })),
-      total,
-      page,
-      pageSize,
+      success: true,
+      status: 200,
+      message: 'Paginated requests retrieved',
+      data: {
+        items: data.map((r) => ({
+          id: r.id,
+          timestamp: r.timestamp.toISOString(),
+          endpoint: r.path,
+          method: r.method,
+          statusCode: r.status,
+          latency: r.latencyMs,
+          traceId: r.id, // api_requests doesn't have traceId, use id as fallback
+          requestBody: r.requestBody,
+          requestHeaders: r.requestHeaders,
+          errorStack: r.errorStack,
+        })),
+        total,
+        page,
+        pageSize,
+      },
     };
+
   }
 
   /** Single request trace lookup */
@@ -475,13 +532,19 @@ export class AnalyticsService {
     const projectIds = await this.getUserProjectIds(userId);
     if (projectIds.length === 0) {
       return {
-        totalErrors: 0,
-        errorRate: 0,
-        topErrors: [],
-        errorsOverTime: [],
-        errorsByStatus: [],
+        success: true,
+        status: 200,
+        message: 'No error data found',
+        data: {
+          totalErrors: 0,
+          errorRate: 0,
+          topErrors: [],
+          errorsOverTime: [],
+          errorsByStatus: [],
+        },
       };
     }
+
 
     const [totalAll, totalErrors] = await Promise.all([
       this.prisma.apiRequest.count({ where: { projectId: { in: projectIds } } }),
@@ -532,26 +595,32 @@ export class AnalyticsService {
     );
 
     return {
-      totalErrors,
-      errorRate,
-      topErrors: topErrorRows.map((r, i) => ({
-        id: `err-${i}`,
-        timestamp: '',
-        endpoint: r.path,
-        method: r.method,
-        statusCode: r.status,
-        message: `HTTP ${r.status}`,
-        count: Number(r.count),
-      })),
-      errorsOverTime: buckets.map((b) => ({
-        timestamp: b.toISOString(),
-        value: errTimeMap.get(b.toISOString()) ?? 0,
-      })),
-      errorsByStatus: statusRows.map((r) => ({
-        statusCode: r.status,
-        count: Number(r.count),
-      })),
+      success: true,
+      status: 200,
+      message: 'Error overview retrieved',
+      data: {
+        totalErrors,
+        errorRate,
+        topErrors: topErrorRows.map((r, i) => ({
+          id: `err-${i}`,
+          timestamp: '',
+          endpoint: r.path,
+          method: r.method,
+          statusCode: r.status,
+          message: `HTTP ${r.status}`,
+          count: Number(r.count),
+        })),
+        errorsOverTime: buckets.map((b) => ({
+          timestamp: b.toISOString(),
+          value: errTimeMap.get(b.toISOString()) ?? 0,
+        })),
+        errorsByStatus: statusRows.map((r) => ({
+          statusCode: r.status,
+          count: Number(r.count),
+        })),
+      },
     };
+
   }
 
   /** Latency overview */
@@ -559,15 +628,21 @@ export class AnalyticsService {
     const projectIds = await this.getUserProjectIds(userId);
     if (projectIds.length === 0) {
       return {
-        avgLatency: 0,
-        p50: 0,
-        p95: 0,
-        p99: 0,
-        latencyOverTime: [],
-        latencyDistribution: [],
-        slowestEndpoints: [],
+        success: true,
+        status: 200,
+        message: 'No latency data found',
+        data: {
+          avgLatency: 0,
+          p50: 0,
+          p95: 0,
+          p99: 0,
+          latencyOverTime: [],
+          latencyDistribution: [],
+          slowestEndpoints: [],
+        },
       };
     }
+
 
     // Global percentiles
     const percentiles: { avg: number; p50: number; p95: number; p99: number }[] =
@@ -643,35 +718,41 @@ export class AnalyticsService {
     );
 
     return {
-      avgLatency: Math.round(Number(p?.avg ?? 0) * 100) / 100,
-      p50: Math.round(Number(p?.p50 ?? 0) * 100) / 100,
-      p95: Math.round(Number(p?.p95 ?? 0) * 100) / 100,
-      p99: Math.round(Number(p?.p99 ?? 0) * 100) / 100,
-      latencyOverTime: buckets.map((b) => ({
-        timestamp: b.toISOString(),
-        value: latMap.get(b.toISOString()) ?? 0,
-      })),
-      latencyDistribution: distRows.map((r) => ({
-        bucket: r.bucket,
-        count: Number(r.count),
-      })),
-      slowestEndpoints: slowRows.map((r) => {
-        const total = Number(r.total);
-        const errors = Number(r.errors);
-        return {
-          id: `${r.method}:${r.path}`,
-          path: r.path,
-          method: r.method,
-          requests: total,
-          avgLatency: Math.round(Number(r.avg_latency) * 100) / 100,
-          errors,
-          errorRate: total > 0 ? Math.round((errors / total) * 10000) / 100 : 0,
-          p50Latency: Math.round(Number(r.p50) * 100) / 100,
-          p95Latency: Math.round(Number(r.p95) * 100) / 100,
-          p99Latency: Math.round(Number(r.p99) * 100) / 100,
-        };
-      }),
+      success: true,
+      status: 200,
+      message: 'Latency overview retrieved',
+      data: {
+        avgLatency: Math.round(Number(p?.avg ?? 0) * 100) / 100,
+        p50: Math.round(Number(p?.p50 ?? 0) * 100) / 100,
+        p95: Math.round(Number(p?.p95 ?? 0) * 100) / 100,
+        p99: Math.round(Number(p?.p99 ?? 0) * 100) / 100,
+        latencyOverTime: buckets.map((b) => ({
+          timestamp: b.toISOString(),
+          value: latMap.get(b.toISOString()) ?? 0,
+        })),
+        latencyDistribution: distRows.map((r) => ({
+          bucket: r.bucket,
+          count: Number(r.count),
+        })),
+        slowestEndpoints: slowRows.map((r) => {
+          const total = Number(r.total);
+          const errors = Number(r.errors);
+          return {
+            id: `${r.method}:${r.path}`,
+            path: r.path,
+            method: r.method,
+            requests: total,
+            avgLatency: Math.round(Number(r.avg_latency) * 100) / 100,
+            errors,
+            errorRate: total > 0 ? Math.round((errors / total) * 10000) / 100 : 0,
+            p50Latency: Math.round(Number(r.p50) * 100) / 100,
+            p95Latency: Math.round(Number(r.p95) * 100) / 100,
+            p99Latency: Math.round(Number(r.p99) * 100) / 100,
+          };
+        }),
+      },
     };
+
   }
 
   /** Generate hourly bucket timestamps going back N hours */

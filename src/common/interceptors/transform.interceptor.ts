@@ -26,12 +26,20 @@ export class TransformInterceptor<T>
         const status = response.statusCode;
 
         return next.handle().pipe(
-            map((data) => ({
-                success: true,
-                status,
-                message: 'Success',
-                data,
-            })),
+            map((data) => {
+                // If it's already in the correct format, don't double wrap
+                if (data && typeof data === 'object' && 'success' in data && 'status' in data && 'data' in data) {
+                    return data;
+                }
+
+                return {
+                    success: true,
+                    status,
+                    message: 'Success',
+                    data: data || null,
+                };
+            }),
         );
+
     }
 }

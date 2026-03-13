@@ -31,8 +31,14 @@ export class AuthService {
         });
 
         const token = this.jwtService.sign({ sub: user.id, email: user.email });
-        return { accessToken: token, user: { id: user.id, email: user.email, name: user.name } };
+        return {
+            success: true,
+            status: 201,
+            message: 'User registered successfully',
+            data: { accessToken: token, user: { id: user.id, email: user.email, name: user.name } },
+        };
     }
+
 
     async login(dto: LoginDto) {
         const user = await this.prisma.user.findUnique({
@@ -50,6 +56,12 @@ export class AuthService {
         }
 
         const token = this.jwtService.sign({ sub: user.id, email: user.email });
-        return { accessToken: token, user: { id: user.id, email: user.email, name: user.name } };
+        return {
+            success: true,
+            status: 200,
+            message: 'Login successful',
+            data: { accessToken: token, user: { id: user.id, email: user.email, name: user.name } },
+        };
     }
+
 }

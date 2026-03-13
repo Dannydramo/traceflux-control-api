@@ -14,8 +14,14 @@ export class SecurityService {
             throw new NotFoundException(`Security report for request ${requestId} not found`);
         }
 
-        return report;
+        return {
+            success: true,
+            status: 200,
+            message: 'Security report retrieved',
+            data: report,
+        };
     }
+
 
     async getAggregateByEndpoint(projectId: string, endpointId: string) {
         // Find all reports for the endpoint
@@ -27,13 +33,19 @@ export class SecurityService {
 
         if (reports.length === 0) {
             return {
-                securityScore: 100,
-                riskLevel: 'low',
-                topIssues: [],
-                recommendations: [],
-                totalAnalyzed: 0
+                success: true,
+                status: 200,
+                message: 'No security reports found',
+                data: {
+                    securityScore: 100,
+                    riskLevel: 'low',
+                    topIssues: [],
+                    recommendations: [],
+                    totalAnalyzed: 0,
+                },
             };
         }
+
 
         // Calculate average score
         const totalScore = reports.reduce((acc, r) => acc + r.securityScore, 0);
@@ -66,13 +78,19 @@ export class SecurityService {
         const recommendations = [...new Set(topIssues.map(i => i.recommendation))];
 
         return {
-            securityScore: avgScore,
-            riskLevel,
-            topIssues,
-            recommendations,
-            totalAnalyzed: reports.length
+            success: true,
+            status: 200,
+            message: 'Security aggregate retrieved',
+            data: {
+                securityScore: avgScore,
+                riskLevel,
+                topIssues,
+                recommendations,
+                totalAnalyzed: reports.length,
+            },
         };
     }
+
 
     async getProjectSummary(projectId: string) {
         return this.getAggregateByEndpoint(projectId, undefined); // Provide undefined to aggregate across the whole project
