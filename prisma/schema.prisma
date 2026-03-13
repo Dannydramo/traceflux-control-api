@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+
+  projects Project[]
+
+  @@map("users")
+}
+
+model Project {
+  id        String   @id @default(uuid())
+  name      String
+  userId    String
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiKeys ApiKey[]
+  services Service[]
+
+  @@index([userId])
+  @@map("projects")
+}
+
+model ApiKey {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  name      String
+  projectId String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("api_keys")
+}
+
+model Service {
+  id        String   @id @default(uuid())
+  projectId String
+  name      String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  endpoints Endpoint[]
+  traces    Trace[]
+  logs      Log[]
+
+  @@index([projectId])
+  @@map("services")
+}
+
+model Endpoint {
+  id        String   @id @default(uuid())
+  serviceId String
+  method    String
+  path      String
+  createdAt DateTime @default(now())
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  requests ApiRequest[]
+
+  @@unique([serviceId, method, path])
+}
+
+model ApiRequest {
+  id          String   @id @default(uuid())
+  projectId   String
+  serviceId   String
+  endpointId  String
+  method         String
+  path           String
+  status         Int
+  latencyMs      Float
+  requestHeaders String?
+  requestBody    String?
+  errorStack     String?
+  traceId        String?
+  timestamp      DateTime
+
+  endpoint Endpoint @relation(fields: [endpointId], references: [id])
+
+  @@index([projectId, timestamp])
+  @@index([endpointId])
+  @@map("api_requests")
+}
+
+model Trace {
+  id        String   @id @default(uuid())
+  traceId   String   @unique
+  serviceId String
+  timestamp DateTime
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  spans Span[]
+
+  @@index([traceId])
+  @@map("traces")
+}
+
+model Span {
+  id        String   @id @default(uuid())
+  traceId   String
+  name      String
+  startTime DateTime
+  endTime   DateTime
+  duration  Float
+  parentId  String?
+
+  trace Trace @relation(fields: [traceId], references: [traceId])
+
+  @@index([traceId])
+}
+
+model Log {
+  id        String   @id @default(uuid())
+  serviceId String
+  level     String
+  message   String
+  traceId   String?
+  timestamp DateTime
+
+  service Service @relation(fields: [serviceId], references: [id])
+
+  @@index([serviceId])
+}
+
+model Dependency {
+  id             String   @id @default(uuid())
+  projectId      String
+  sourceService  String
+  targetService  String
+  endpoint       String
+  method         String
+  callCount      Int
+  avgLatency     Float
+  lastSeen       DateTime
+
+  @@index([projectId])
+  @@unique([projectId, sourceService, targetService, endpoint, method])
+  @@map("dependencies")
+}
+
+model SecurityReport {
+  id              String   @id @default(uuid())
+  projectId       String
+  endpointId      String?
+  requestId       String?
+  securityScore   Int
+  riskLevel       String
+  issues          Json
+  recommendations Json
+  createdAt       DateTime @default(now())
+
+  @@index([projectId])
+  @@index([endpointId])
+  @@index([requestId])
+}

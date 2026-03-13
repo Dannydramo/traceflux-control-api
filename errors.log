@@ -1,0 +1,35 @@
+
+> traceflux-control-api@0.0.1 build
+> nest build
+
+src/modules/analytics/analytics.service.ts:57:66 - error TS2551: Property 'endpoint' does not exist on type '{ id: string; projectId: string; path: string; serviceId: string; endpointId: string; method: string; status: number; latencyMs: number; traceId: string | null; timestamp: Date; }'. Did you mean 'endpointId'?
+
+57     const activeEndpoints = new Set(currentRequests.map((r) => r.endpoint)).size;
+                                                                    ~~~~~~~~
+src/modules/analytics/analytics.service.ts:66:61 - error TS2551: Property 'endpoint' does not exist on type '{ id: string; projectId: string; path: string; serviceId: string; endpointId: string; method: string; status: number; latencyMs: number; traceId: string | null; timestamp: Date; }'. Did you mean 'endpointId'?
+
+66     const prevEndpoints = new Set(prevRequests.map((r) => r.endpoint)).size;
+                                                               ~~~~~~~~
+src/modules/analytics/analytics.service.ts:318:11 - error TS2322: Type 'string' is not assignable to type '(Without<EndpointScalarRelationFilter, EndpointWhereInput> & EndpointWhereInput) | (Without<...> & EndpointScalarRelationFilter) | undefined'.
+
+318           endpoint: path,
+              ~~~~~~~~
+src/modules/analytics/analytics.service.ts:358:21 - error TS2551: Property 'endpoint' does not exist on type '{ id: string; projectId: string; path: string; serviceId: string; endpointId: string; method: string; status: number; latencyMs: number; traceId: string | null; timestamp: Date; }'. Did you mean 'endpointId'?
+
+358         endpoint: r.endpoint,
+                        ~~~~~~~~
+Found 7 error(s).
+
+src/modules/analytics/analytics.service.ts:421:21 - error TS2551: Property 'endpoint' does not exist on type '{ id: string; projectId: string; path: string; serviceId: string; endpointId: string; method: string; status: number; latencyMs: number; traceId: string | null; timestamp: Date; }'. Did you mean 'endpointId'?
+
+421         endpoint: r.endpoint,
+                        ~~~~~~~~
+src/modules/analytics/analytics.service.ts:448:24 - error TS2551: Property 'endpoint' does not exist on type '{ id: string; projectId: string; path: string; serviceId: string; endpointId: string; method: string; status: number; latencyMs: number; traceId: string | null; timestamp: Date; }'. Did you mean 'endpointId'?
+
+448       endpoint: record.endpoint,
+                           ~~~~~~~~
+src/modules/analytics/analytics.service.ts:455:44 - error TS2551: Property 'endpoint' does not exist on type '{ id: string; projectId: string; path: string; serviceId: string; endpointId: string; method: string; status: number; latencyMs: number; traceId: string | null; timestamp: Date; }'. Did you mean 'endpointId'?
+
+455           name: `${record.method} ${record.endpoint}`,
+                                               ~~~~~~~~
+
