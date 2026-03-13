@@ -1,21 +1,19 @@
-import { Controller, Get, Param, Request, UseGuards, UnauthorizedException, Query, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Param, Request, UseGuards, Query, NotFoundException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { PrismaService } from '../../common/prisma/prisma.service';
 import { AnalyticsService } from '../analytics/analytics.service';
+import { TelemetryService } from './telemetry.service';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('telemetry')
 export class TelemetryController {
     constructor(
-        private prisma: PrismaService,
+        private telemetryService: TelemetryService,
         private analyticsService: AnalyticsService
     ) { }
 
     @Get('services')
     async getServices(@Request() req) {
-        return this.prisma.service.findMany({
-            where: { project: { userId: req.user.id } }
-        });
+        return this.telemetryService.getServices(req.user.id);
     }
 
     @Get('endpoints')
@@ -25,9 +23,7 @@ export class TelemetryController {
 
     @Get('endpoints/:id')
     async getEndpointDetail(@Request() req, @Param('id') id: string) {
-        const detail = await this.analyticsService.getEndpointDetail(req.user.id, id);
-        if (!detail) throw new NotFoundException('Endpoint not found');
-        return detail;
+        return this.analyticsService.getEndpointDetail(req.user.id, id);
     }
 
     @Get('requests')
@@ -52,9 +48,7 @@ export class TelemetryController {
 
     @Get('traces/:traceId')
     async getTrace(@Request() req, @Param('traceId') traceId: string) {
-        const trace = await this.analyticsService.getTrace(req.user.id, traceId);
-        if (!trace) throw new NotFoundException('Trace not found');
-        return trace;
+        return this.analyticsService.getTrace(req.user.id, traceId);
     }
 
     @Get('logs')
@@ -63,39 +57,12 @@ export class TelemetryController {
         @Query('serviceId') serviceId?: string,
         @Query('limit') limit = 100
     ) {
-        const projects = await this.prisma.project.findMany({
-            where: { userId: req.user.id },
-            select: { id: true }
-        });
-        const projectIds = projects.map(p => p.id);
-
-        const whereClause: any = { projectId: { in: projectIds } };
-        if (serviceId) {
-            whereClause.serviceId = serviceId;
-        }
-
-        return this.prisma.log.findMany({
-            where: whereClause,
-            orderBy: { timestamp: 'desc' },
-            take: Number(limit)
-        });
+        return this.telemetryService.getLogs(req.user.id, serviceId, limit);
     }
 
     @Get('dependencies')
     async getDependencies(@Request() req, @Query('projectId') projectId?: string) {
-        const projects = await this.prisma.project.findMany({
-            where: { userId: req.user.id },
-            select: { id: true }
-        });
-        const projectIds = projects.map(p => p.id);
-
-        const qProjectId = projectId && projectIds.includes(projectId) ? projectId : undefined;
-
-        return this.prisma.dependency.findMany({
-            where: {
-                projectId: qProjectId ? qProjectId : { in: projectIds }
-            },
-            orderBy: { callCount: 'desc' }
-        });
+        return this.telemetryService.getDependencies(req.user.id, projectId);
     }
 }
+
