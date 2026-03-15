@@ -9,16 +9,17 @@ export class SecurityController {
 
     @Get('request/:requestId')
     async getRequestReport(@Req() req: any, @Param('requestId') requestId: string) {
-        return this.securityService.getReportByRequest(req.user.projectId, requestId);
+        return this.securityService.getReportByRequest(req.user.id, requestId);
     }
 
     @Get('endpoint/:endpointId')
     async getEndpointAggregate(@Req() req: any, @Param('endpointId') endpointId: string) {
-        return this.securityService.getAggregateByEndpoint(req.user.projectId, endpointId);
+        return this.securityService.getAggregateByEndpoint(req.user.id, endpointId);
     }
 
     @Get('project')
     async getProjectSummary(@Req() req: any) {
-        return this.securityService.getProjectSummary(req.user.projectId);
+        return this.securityService.getProjectSummary(req.user.id);
     }
+
 }

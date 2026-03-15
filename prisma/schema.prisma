@@ -7,26 +7,24 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
+  id        String    @id @default(uuid())
+  email     String    @unique
   password  String
   name      String?
-  createdAt DateTime @default(now())
-
-  projects Project[]
+  createdAt DateTime  @default(now())
+  projects  Project[]
 
   @@map("users")
 }
 
 model Project {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   name      String
   userId    String
-  createdAt DateTime @default(now())
-
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  apiKeys ApiKey[]
-  services Service[]
+  createdAt DateTime  @default(now())
+  apiKeys   ApiKey[]
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  services  Service[]
 
   @@index([userId])
   @@map("projects")
@@ -38,48 +36,43 @@ model ApiKey {
   name      String
   projectId String
   createdAt DateTime @default(now())
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
   @@map("api_keys")
 }
 
 model Service {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   projectId String
   name      String
-  createdAt DateTime @default(now())
-
-  project Project @relation(fields: [projectId], references: [id])
-
+  createdAt DateTime   @default(now())
   endpoints Endpoint[]
-  traces    Trace[]
   logs      Log[]
+  project   Project    @relation(fields: [projectId], references: [id])
+  traces    Trace[]
 
   @@index([projectId])
   @@map("services")
 }
 
 model Endpoint {
-  id        String   @id @default(uuid())
+  id        String       @id @default(uuid())
   serviceId String
   method    String
   path      String
-  createdAt DateTime @default(now())
-
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-
-  requests ApiRequest[]
+  createdAt DateTime     @default(now())
+  service   Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  requests  ApiRequest[]
 
   @@unique([serviceId, method, path])
 }
 
 model ApiRequest {
-  id          String   @id @default(uuid())
-  projectId   String
-  serviceId   String
-  endpointId  String
+  id             String   @id @default(uuid())
+  projectId      String
+  serviceId      String
+  endpointId     String
   method         String
   path           String
   status         Int
@@ -89,8 +82,7 @@ model ApiRequest {
   errorStack     String?
   traceId        String?
   timestamp      DateTime
-
-  endpoint Endpoint @relation(fields: [endpointId], references: [id])
+  endpoint       Endpoint @relation(fields: [endpointId], references: [id])
 
   @@index([projectId, timestamp])
   @@index([endpointId])
@@ -102,9 +94,8 @@ model Trace {
   traceId   String   @unique
   serviceId String
   timestamp DateTime
-
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  spans Span[]
+  spans     Span[]
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
   @@index([traceId])
   @@map("traces")
@@ -118,8 +109,7 @@ model Span {
   endTime   DateTime
   duration  Float
   parentId  String?
-
-  trace Trace @relation(fields: [traceId], references: [traceId])
+  trace     Trace    @relation(fields: [traceId], references: [traceId])
 
   @@index([traceId])
 }
@@ -131,25 +121,24 @@ model Log {
   message   String
   traceId   String?
   timestamp DateTime
-
-  service Service @relation(fields: [serviceId], references: [id])
+  service   Service  @relation(fields: [serviceId], references: [id])
 
   @@index([serviceId])
 }
 
 model Dependency {
-  id             String   @id @default(uuid())
-  projectId      String
-  sourceService  String
-  targetService  String
-  endpoint       String
-  method         String
-  callCount      Int
-  avgLatency     Float
-  lastSeen       DateTime
+  id            String   @id @default(uuid())
+  projectId     String
+  sourceService String
+  targetService String
+  endpoint      String
+  method        String
+  callCount     Int
+  avgLatency    Float
+  lastSeen      DateTime
 
-  @@index([projectId])
   @@unique([projectId, sourceService, targetService, endpoint, method])
+  @@index([projectId])
   @@map("dependencies")
 }
 

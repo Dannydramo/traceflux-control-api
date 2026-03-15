@@ -5,10 +5,23 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 export class SecurityService {
     constructor(private prisma: PrismaService) { }
 
-    async getReportByRequest(projectId: string, requestId: string) {
-        const report = await this.prisma.securityReport.findFirst({
-            where: { projectId, requestId },
+    private async getUserProjectIds(userId: string): Promise<string[]> {
+        const projects = await this.prisma.project.findMany({
+            where: { userId },
+            select: { id: true },
         });
+        return projects.map((p) => p.id);
+    }
+
+    async getReportByRequest(userId: string, requestId: string) {
+        const projectIds = await this.getUserProjectIds(userId);
+        const report = await this.prisma.securityReport.findFirst({
+            where: { 
+                projectId: { in: projectIds },
+                requestId 
+            },
+        });
+
 
         if (!report) {
             throw new NotFoundException(`Security report for request ${requestId} not found`);
@@ -23,13 +36,29 @@ export class SecurityService {
     }
 
 
-    async getAggregateByEndpoint(projectId: string, endpointId: string) {
-        // Find all reports for the endpoint
+    async getAggregateByEndpoint(userId: string, endpointId?: string) {
+        const projectIds = await this.getUserProjectIds(userId);
+        if (projectIds.length === 0) {
+            return {
+                success: true,
+                status: 200,
+                message: 'No projects found',
+                data: null,
+            };
+        }
+
+        // Find all reports for the endpoint/project
+        const where: any = { projectId: { in: projectIds } };
+        if (endpointId) {
+            where.endpointId = endpointId;
+        }
+
         const reports = await this.prisma.securityReport.findMany({
-            where: { projectId, endpointId },
+            where,
             orderBy: { createdAt: 'desc' },
-            take: 100, // Look at the most recent 100 for aggregation
+            take: 100,
         });
+
 
         if (reports.length === 0) {
             return {
@@ -92,7 +121,8 @@ export class SecurityService {
     }
 
 
-    async getProjectSummary(projectId: string) {
-        return this.getAggregateByEndpoint(projectId, undefined); // Provide undefined to aggregate across the whole project
+    async getProjectSummary(userId: string) {
+        return this.getAggregateByEndpoint(userId); 
     }
 }
+

@@ -143,10 +143,16 @@ export class AnalyticsService {
 
     if (projectIds.length === 0) {
       return {
-        label: 'Latency (ms)',
-        data: buckets.map((b) => ({ timestamp: b.toISOString(), value: 0 })),
+        success: true,
+        status: 200,
+        message: 'No projects found',
+        data: {
+          label: 'Latency (ms)',
+          data: buckets.map((b) => ({ timestamp: b.toISOString(), value: 0 })),
+        },
       };
     }
+
 
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const rows: { hour: Date; avg: number }[] = await this.prisma.$queryRawUnsafe(
@@ -160,13 +166,19 @@ export class AnalyticsService {
 
     const map = new Map(rows.map((r) => [new Date(r.hour).toISOString(), Math.round(Number(r.avg) * 100) / 100]));
     return {
-      label: 'Latency (ms)',
-      data: buckets.map((b) => ({
-        timestamp: b.toISOString(),
-        value: map.get(b.toISOString()) ?? 0,
-      })),
+      success: true,
+      status: 200,
+      message: 'Latency trend retrieved',
+      data: {
+        label: 'Latency (ms)',
+        data: buckets.map((b) => ({
+          timestamp: b.toISOString(),
+          value: map.get(b.toISOString()) ?? 0,
+        })),
+      },
     };
   }
+
 
   /** Error rate over time (hourly buckets, last 24h) */
   async getErrorRateOverTime(userId: string) {
@@ -175,10 +187,16 @@ export class AnalyticsService {
 
     if (projectIds.length === 0) {
       return {
-        label: 'Error Rate (%)',
-        data: buckets.map((b) => ({ timestamp: b.toISOString(), value: 0 })),
+        success: true,
+        status: 200,
+        message: 'No projects found',
+        data: {
+          label: 'Error Rate (%)',
+          data: buckets.map((b) => ({ timestamp: b.toISOString(), value: 0 })),
+        },
       };
     }
+
 
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const rows: { hour: Date; total: bigint; errors: bigint }[] =
@@ -202,13 +220,19 @@ export class AnalyticsService {
     );
 
     return {
-      label: 'Error Rate (%)',
-      data: buckets.map((b) => ({
-        timestamp: b.toISOString(),
-        value: map.get(b.toISOString()) ?? 0,
-      })),
+      success: true,
+      status: 200,
+      message: 'Error rate over time retrieved',
+      data: {
+        label: 'Error Rate (%)',
+        data: buckets.map((b) => ({
+          timestamp: b.toISOString(),
+          value: map.get(b.toISOString()) ?? 0,
+        })),
+      },
     };
   }
+
 
   /** Endpoint summaries */
   async getEndpoints(userId: string) {
@@ -430,9 +454,10 @@ export class AnalyticsService {
         success: true,
         status: 200,
         message: 'No requests found',
-        data: { items: [], total: 0, page: 1, pageSize: 25 },
+        data: { results: [], total: 0, page: 1, pageSize: 25 },
       };
     }
+
 
 
     const page = params.page ?? 1;
@@ -473,7 +498,7 @@ export class AnalyticsService {
       status: 200,
       message: 'Paginated requests retrieved',
       data: {
-        items: data.map((r) => ({
+        results: data.map((r) => ({
           id: r.id,
           timestamp: r.timestamp.toISOString(),
           endpoint: r.path,
@@ -489,6 +514,7 @@ export class AnalyticsService {
         page,
         pageSize,
       },
+
     };
 
   }
@@ -505,27 +531,33 @@ export class AnalyticsService {
     if (!record) return null;
 
     return {
-      id: record.id,
-      traceId: record.id,
-      timestamp: record.timestamp.toISOString(),
-      endpoint: record.path,
-      method: record.method,
-      statusCode: record.status,
-      totalDuration: record.latencyMs,
-      requestBody: record.requestBody,
-      requestHeaders: record.requestHeaders,
-      errorStack: record.errorStack,
-      spans: [
-        {
-          id: record.id,
-          name: `${record.method} ${record.path}`,
-          startTime: 0,
-          duration: record.latencyMs,
-          status: record.status < 400 ? 'ok' : 'error',
-        },
-      ],
+      success: true,
+      status: 200,
+      message: 'Trace retrieved',
+      data: {
+        id: record.id,
+        traceId: record.id,
+        timestamp: record.timestamp.toISOString(),
+        endpoint: record.path,
+        method: record.method,
+        statusCode: record.status,
+        totalDuration: record.latencyMs,
+        requestBody: record.requestBody,
+        requestHeaders: record.requestHeaders,
+        errorStack: record.errorStack,
+        spans: [
+          {
+            id: record.id,
+            name: `${record.method} ${record.path}`,
+            startTime: 0,
+            duration: record.latencyMs,
+            status: record.status < 400 ? 'ok' : 'error',
+          },
+        ],
+      },
     };
   }
+
 
   /** Error overview */
   async getErrorOverview(userId: string) {
